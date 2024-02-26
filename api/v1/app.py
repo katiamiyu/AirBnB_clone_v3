@@ -1,27 +1,48 @@
 #!/usr/bin/python3
-""" creating the first api"""
-from api.v1.views import app_views
-from flask import Flask
+"""
+Creates app instace of Flask
+Run the instance under main
+"""
+from os import environ
+from flask import Flask, jsonify, make_response
+from flask_cors import CORS
 from models import storage
-from os import getenv
+from api.v1.views import app_views
 
 app = Flask(__name__)
-
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 app.register_blueprint(app_views)
+cors = CORS(app, resources={r"/*": {"origins": "0.0.0.0"}})
 
 
 @app.teardown_appcontext
-def storage_close(exception):
-    """
-    The decorator call the storage.close method
-    """
+def close_db(error):
+    """ decorator method to Close Storage """
     storage.close()
 
 
-if __name__ == "__main__":
-    # Retrieve host and port from env variables or use defaults
-    host = getenv("HBNB_API_HOST", "0.0.0.0")
-    port = int(getenv("HBNB_API_PORT", 5000))
+@app.errorhandler(404)
+def not_found(error):
+    """ 404 Error
+        description: when a resource was not found
+    """
+    return make_response(jsonify({'error': "Not found"}), 404)
 
-    # Runs the app instance with port and host
+
+app.config['SWAGGER'] = {
+    'title': 'AirBnB clone Restful API',
+    'uiversion': 3
+}
+
+
+if __name__ == "__main__":
+    """
+    when run as main
+    """
+    host = environ.get('HBNB_API_HOST')
+    port = environ.get('HBNB_API_PORT')
+    if not host:
+        host = '0.0.0.0'
+    if not port:
+        port = '5000'
     app.run(host=host, port=port, threaded=True)
